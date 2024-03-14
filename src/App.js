@@ -1,73 +1,100 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import TodoItem from "./_components/TodoItem"
+import TodoForm from "./_components/TodoForm"
+import "./App.css"
 
 function App() {
   const [items, setItems] = useState([])
-  const [value, setValue] = useState("")
 
   const addItem = value => {
-    if (!value) return
-
-    setItems([
+    let newItems = [
       ...items,
-      {
-        task: value,
-        priority: 2,
-        status: "ongoing",
-      },
-    ])
-    setValue("")
+      { id: Math.floor(Math.random() * 1000), task: value, priority: 2, isCompleted: false },
+    ]
+
+    setItems(newItems)
+    localStorage.setItem("items", JSON.stringify(newItems))
   }
 
-  const deleteItem = index => {
-    let prevItems = [...items]
-
-    prevItems.splice(index, 1)
-    setItems(prevItems)
+  const deleteItem = id => {
+    let itemsArr = [...items].filter(item => item.id !== id)
+    setItems(itemsArr)
+    localStorage.setItem("items", JSON.stringify(itemsArr))
   }
 
-  const completeItem = index => {
-    let prevItems = [...items]
-
-    prevItems[index].status = "completed"
-    setItems(prevItems)
+  const completeItem = id => {
+    let itemsArr = [...items]
+    itemsArr.map(item => {
+      if (item.id === id) {
+        item.isCompleted = !item.isCompleted
+      }
+      return item
+    })
+    setItems(itemsArr)
+    localStorage.setItem("items", JSON.stringify(itemsArr))
   }
 
   const deleteCompletedItems = () => {
-    let prevItems = [...items]
-
-    for (let i = 0; i < prevItems.length; i++) {
-      if (prevItems[i].status === "completed") {
-        prevItems.splice(i, 1)
-      }
-    }
-    setItems(prevItems)
+    let itemsArr = [...items].filter(item => !item.isCompleted)
+    setItems(itemsArr)
+    localStorage.setItem("items", JSON.stringify(itemsArr))
   }
 
-  console.log({ items })
+  const updateItemPriority = (id, value) => {
+    let itemsArr = [...items]
+    itemsArr.map(item => {
+      if (item.id === id) {
+        item.priority = value
+      }
+      return item
+    })
+    setItems(itemsArr)
+    localStorage.setItem("items", JSON.stringify(itemsArr))
+  }
+
+  useEffect(() => {
+    let isMounted = true
+    const items = localStorage.getItem("items")
+
+    if (items) {
+      isMounted && setItems(JSON.parse(items))
+    } else {
+      isMounted && setItems([])
+    }
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   return (
-    <div>
-      <h3>Todo</h3>
+    <main>
+      <div className="container">
+        <h3>Todo</h3>
 
-      <div>
-        <div>
-          <input type="text" value={value} onChange={e => setValue(e.target.value)} />
-          <button onClick={e => addItem(e.target.value)}>Create Item</button>
+        <TodoForm addItem={addItem} />
+
+        <div className="todo-list">
+          {items.length > 0 &&
+            items
+              .sort((a, b) => a.priority - b.priority)
+              .map((item, index) => (
+                <TodoItem
+                  key={index}
+                  item={item}
+                  index={index}
+                  deleteItem={deleteItem}
+                  completeItem={completeItem}
+                  updateItemPriority={updateItemPriority}
+                />
+              ))}
+
+          <button onClick={deleteCompletedItems} className="delete-completed">
+            Delete Completed
+          </button>
         </div>
       </div>
-
-      {items.length > 0 &&
-        items.map((item, index) => (
-          <TodoItem
-            key={index}
-            item={item}
-            index={index}
-            deleteItem={deleteItem}
-            completeItem={completeItem}
-          />
-        ))}
-    </div>
+    </main>
   )
 }
 
